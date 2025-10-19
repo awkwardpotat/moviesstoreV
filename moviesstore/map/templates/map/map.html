@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+{% block content %}
+{% load static %}
+  <meta charset="utf-8" />
+  <title>World Map</title>
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"> //this loads the map!!
+  </script>
+  <style>
+    html, body, #map { height: 600px; width: 100; margin: 0; }
+
+/* Tooltip styling - used to be bigger but then it wouldn't fit 2 movies */
+    .movie-tooltip {
+      padding: 8px;
+      background: white;
+      border: 2px solid #3388ff;
+      border-radius: 6px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      min-width: 300px;
+      max-width: 400px;
+      font-size: 12px;
+    }
+
+    /* Horizontal container for movies */
+    .movies-container {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;  /* Scroll if needed */
+    }
+
+    .movie-item {
+      flex: 1;
+      min-width: 130px;
+      text-align: center;
+    }
+
+    .movie-tooltip img {
+      width: auto;
+      height: 80px;
+      max-width: 100%;
+      border-radius: 4px;
+      margin-bottom: 5px;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .movie-tooltip h3 {
+      margin: 0 0 5px 0;
+      font-size: 11px;
+      color: #333;
+    }
+
+    .movie-tooltip .stats {
+      font-size: 10px;
+      color: #666;
+    }
+
+    .movie-tooltip .country-name {
+      font-weight: bold;
+      color: #3388ff;
+      margin-bottom: 8px;
+      font-size: 14px;
+      text-align: center;
+    }
+
+    .no-data {
+      color: #999;
+      font-style: italic;
+      font-size: 11px;
+    }
+
+    /* add spacing between movies!! */
+    .movie-tooltip > div:not(:last-child) {
+      margin-bottom: 8px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #eee;
+    }
+  </style>
+  <div id="map"></div>
+
+  <script>
+    const map = L.map('map').setView([20, 0], 2);
+
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    // get GeoJSON
+    fetch("{% url 'map.world_data' %}")
+      .then(response => response.json())
+      .then(data => {
+        const geojson = JSON.parse(data);
+
+        L.geoJSON(geojson, {
+  style: {
+    color: "#3388ff",
+    weight: 1,
+    fillColor: "#3388ff",
+    fillOpacity: 0.2
+  },
+  onEachFeature: (feature, layer) => {
+    const countryName = feature.properties.name;
+    const topMovies = feature.properties.top_movies;
+
+    // create tooltip content
+    let tooltipContent = `<div class="movie-tooltip">`;
+    tooltipContent += `<div class="country-name">${countryName}</div>`;
+
+    if (topMovies && topMovies.length > 0) {
+      tooltipContent += `<div class="movies-container">`;
+
+      topMovies.forEach((movie, index) => {
+        tooltipContent += `<div class="movie-item">`;
+        tooltipContent += `<strong>#${index + 1}</strong><br>`;
+        if (movie.image) {
+          tooltipContent += `<img src="${movie.image}" alt="${movie.name}">`;
+        }
+        tooltipContent += `<h3>${movie.name}</h3>`;
+        tooltipContent += `<div class="stats">`;
+        tooltipContent += `📊 ${movie.views}<br>`;
+        tooltipContent += `🛒 ${movie.orders}`;
+        tooltipContent += `</div>`;
+        tooltipContent += `</div>`;
+      });
+
+      tooltipContent += `</div>`;  // Close movies-container
+    } else {
+      tooltipContent += `<div class="no-data">No movie data available</div>`;
+    }
+
+    tooltipContent += `</div>`;
+
+    // Bind tooltip and popup
+    layer.bindTooltip(tooltipContent, {
+      sticky: true,
+      className: 'custom-tooltip'
+    });
+
+    layer.bindPopup(tooltipContent);
+
+    // Hover effects
+    layer.on('mouseover', function() {
+      this.setStyle({
+        fillOpacity: 0.5,
+        weight: 2
+      });
+    });
+
+    layer.on('mouseout', function() {
+      this.setStyle({
+        fillOpacity: 0.2,
+        weight: 1
+      });
+    });
+  }
+}).addTo(map);
+      })
+      .catch(err => console.error(err));
+  </script>
+{% endblock content %}
