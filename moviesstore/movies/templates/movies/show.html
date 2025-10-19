@@ -1,6 +1,13 @@
 {% extends 'base.html' %}
 {% block content %}
 {% load static %}
+
+<style>
+    .selected-rating {
+        box-shadow: inset 0 0 0 3px rgb(0, 0, 0);
+    }
+</style>
+
 <div class="p-3">
   <div class="container">
     <div class="row mt-3">
@@ -9,6 +16,20 @@
         <hr />
         <p><b>Description:</b> {{ template_data.movie.description }}</p>
         <p><b>Price:</b> ${{ template_data.movie.price }}</p>
+        <hr>
+          <h5>Community Rating: {{ template_data.movie.like_ratio }}% Liked This</h5>
+          <form action="{% url 'movies.add_rating' template_data.movie.id %}" method="post" class="mt-2 mb-3">
+            {% csrf_token %}
+            <button type="submit" name="like" 
+                    class="btn btn-success {% if template_data.user_rating and template_data.user_rating.liked %}selected-rating{% endif %}">
+                👍 Thumbs Up
+            </button>
+            <button type="submit" name="dislike" 
+                    class="btn btn-danger {% if template_data.user_rating and not template_data.user_rating.liked %}selected-rating{% endif %}">
+                👎 Thumbs Down
+            </button>
+          </form>
+        <hr>
         <p class="card-text">
           <form method="post" action="{% url 'cart.add' id=template_data.movie.id %}">
             <div class="row">
