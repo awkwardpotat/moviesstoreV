@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Movie, Review
+from .models import Movie, Review, Rating
 from django.contrib.auth.decorators import login_required
 
 def index(request):
@@ -18,10 +18,18 @@ def show(request, id):
     movie = Movie.objects.get(id=id)
     reviews = Review.objects.filter(movie=movie)
 
+    user_rating = None
+    if request.user.is_authenticated:
+        try:
+            user_rating = Rating.objects.get(user=request.user, movie=movie)
+        except Rating.DoesNotExist:
+            user_rating = None
+
     template_data = {}
     template_data['title'] = movie.name
     template_data['movie'] = movie
     template_data['reviews'] = reviews
+    template_data['user_rating'] = user_rating
     return render(request, 'movies/show.html', {'template_data': template_data})
 
 @login_required
@@ -61,3 +69,18 @@ def delete_review(request, id, review_id):
     review = get_object_or_404(Review, id=review_id, user=request.user)
     review.delete()
     return redirect('movies.show', id=id)
+
+@login_required
+def add_rating(request, id):
+    movie = get_object_or_404(Movie, pk=id)
+    vote = 'like' in request.POST
+    try:
+        existing_rating = Rating.objects.get(user=request.user, movie=movie)
+        if existing_rating.liked == vote:
+            existing_rating.delete()
+        else:
+            existing_rating.liked = vote
+            existing_rating.save()
+    except Rating.DoesNotExist:
+        Rating.objects.create(user=request.user, movie=movie, liked=vote)
+    return redirect('movies.show', id=movie.id)
