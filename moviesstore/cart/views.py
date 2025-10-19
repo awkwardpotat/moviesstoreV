@@ -4,6 +4,7 @@ from movies.models import Movie
 from .utils import calculate_cart_total
 from .models import Order, Item
 from django.contrib.auth.decorators import login_required
+from movies.models import Movie
 
 def index(request):
     cart_total = 0
@@ -47,7 +48,10 @@ def purchase(request):
     order.total = cart_total
     order.save()
 
+    
+
     for movie in movies_in_cart:
+        movie.increment_orders(request.user.profile.world_border.name)
         item = Item()
         item.movie = movie
         item.price = movie.price
