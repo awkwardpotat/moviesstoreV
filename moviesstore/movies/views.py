@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import Movie, Review, Rating
 from django.contrib.auth.decorators import login_required
+import accounts.utils
 
 def index(request):
     search_term = request.GET.get('search')
@@ -17,6 +18,13 @@ def index(request):
 def show(request, id):
     movie = Movie.objects.get(id=id)
     reviews = Review.objects.filter(movie=movie)
+
+    #update view count
+    if request.user.is_authenticated and hasattr(request.user, 'profile'):
+        #UPDATE USER HERE JUST IN CASE
+        accounts.utils.set_user_location_from_ip(request.user, request)
+        if request.user.profile.world_border:
+            movie.increment_views(request.user.profile.world_border.name)
 
     user_rating = None
     if request.user.is_authenticated:
