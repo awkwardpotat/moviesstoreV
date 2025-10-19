@@ -4,6 +4,7 @@ from .forms import CustomUserCreationForm, CustomErrorList
 from django.shortcuts import redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
+from .utils import set_user_location_from_ip
 
 @login_required
 def logout(request):
@@ -22,6 +23,7 @@ def login(request):
             return render(request, 'accounts/login.html', {'template_data': template_data})
         else:
             auth_login(request, user)
+            set_user_location_from_ip(user, request)
             return redirect('home.index')
 
 def signup(request):
